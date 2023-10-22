@@ -25,6 +25,8 @@
         pkgs = nixpkgs.legacyPackages.${system};
       in
       {
+        lib = import ./lib nixpkgs.lib;
+
         formatter.${system} = pkgs.writeShellApplication {
           name = "lint";
           runtimeInputs = [
@@ -84,7 +86,6 @@
                 )
                 (lib.importJSON ./generated.json);
           in
-
           {
             fetch = pkgs.writeShellApplication {
               name = "fetchPlugins";
