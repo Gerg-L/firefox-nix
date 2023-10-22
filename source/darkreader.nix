@@ -2,9 +2,6 @@
   buildNpmPackage,
   fetchFromGitHub,
   jq,
-  strip-nondeterminism,
-  unzip,
-  zip,
   deno,
   background ? "1e1e2e",
   foreground ? "cdd6f4",
@@ -30,22 +27,23 @@ buildNpmPackage {
 
   nativeBuildInputs = [
     jq
-    strip-nondeterminism
-    unzip
-    zip
     deno
   ];
-
-  patchPhase = ''
-    runHook prePatch
-    sed -i 's/181a1b/${background}/g; s/e8e6e3/${foreground}/g' src/defaults.ts
-    runHook postPatch
-  '';
 
   npmBuildFlags = [
     "--"
     "--firefox"
   ];
+
+  patchPhase = ''
+    runHook prePatch
+    sed -i 's/181a1b/${background}/g; s/e8e6e3/${foreground}/g' src/defaults.ts
+
+    NEW_MANIFEST=$(jq '. + {"applications": { "gecko": { "id": env.extid }}}' "src/manifest-firefox.json")
+    echo "$NEW_MANIFEST" > "src/manifest-firefox.json"
+
+    runHook postPatch
+  '';
 
   preBuild = ''
     npm run deno:bootstrap
@@ -54,15 +52,7 @@ buildNpmPackage {
   installPhase = ''
     runHook preInstall
 
-    UUID="$extid"
-    mkdir -p "$out/$UUID"
-    unzip -q "build/release/darkreader-firefox.xpi" -d "$out/$UUID"
-    NEW_MANIFEST=$(jq '. + {"applications": { "gecko": { "id": env.extid }}, "browser_specific_settings":{"gecko":{"id": env.extid }}}' "$out/$UUID/manifest.json")
-    echo "$NEW_MANIFEST" > "$out/$UUID/manifest.json"
-    cd "$out/$UUID"
-    zip -r -q -FS "$out/$UUID.xpi" *
-    strip-nondeterminism "$out/$UUID.xpi"
-    rm -r "$out/$UUID"
+    install -D build/release/darkreader-firefox.xpi "$out/$extid.xpi"
 
     runHook postInstall
   '';
