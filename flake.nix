@@ -108,24 +108,18 @@
                   pkgs.zip
                 ]
                 ''
-                  source $stdenv/setup
-
-                  echo "firefox addon $name into $out"
-
-                  UUID="$extid"
-                  mkdir -p "$out/$UUID"
-                  unzip -q "$src" -d "$out/$UUID"
-                  NEW_MANIFEST=$(jq '. + {"applications": { "gecko": { "id": env.extid }}, "browser_specific_settings":{"gecko":{"id": env.extid }}}' "$out/$UUID/manifest.json")
-                  echo "$NEW_MANIFEST" > "$out/$UUID/manifest.json"
-                  cd "$out/$UUID"
-                  zip -r -q -FS "$out/$UUID.xpi" *
-                  strip-nondeterminism "$out/$UUID.xpi"
-                  rm -r "$out/$UUID"
+                  mkdir -p "$out/$extid"
+                  unzip -q "$src" -d "$out/$extid"
+                  NEW_MANIFEST=$(jq '. + {"applications": { "gecko": { "id": env.extid }}, "browser_specific_settings":{"gecko":{"id": env.extid }}}' "$out/$extid/manifest.json")
+                  echo "$NEW_MANIFEST" > "$out/$extid/manifest.json"
+                  cd "$out/$extid"
+                  zip -r -q -FS "$out/$extid.xpi" *
+                  strip-nondeterminism "$out/$extid.xpi"
+                  rm -r "$out/$extid"
                 '';
+
             HMbinary = builder [ ] ''
-              dst="$out/share/mozilla/extensions/{ec8030f7-c20a-464f-9b0e-13a3a9e97384}"
-              mkdir -p "$dst"
-              install -v -m644 "$src" "$dst/$extid.xpi"
+              install -D "$src" "$out/share/mozilla/extensions/{ec8030f7-c20a-464f-9b0e-13a3a9e97384}/$extid.xpi"
             '';
           };
       }
