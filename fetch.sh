@@ -2,26 +2,21 @@
 
 OBJECT=""
 
-count=$(jq '. | length' ./sources.json)
+readarray -t ARRAY < <(jq -c '.[]' sources.json)
 
-for ((i=0; i<$count; i++)); do
+for object in "${ARRAY[@]}"; do
 
-  SLUG=$( jq -r '.['$i'].slug' sources.json)
+  SLUG=$(jq --raw-output '.slug' <<< "$object")
 
-  PNAME=$(
-    TEMP=$(jq -r '.['$i'].pname' sources.json)
-  if [ "$TEMP" != "null" ]; then 
-    echo "$TEMP"
-  else 
-    echo "$SLUG"
-  fi
-  )
+  PNAME=$(jq --raw-output '.pname // .slug' <<< "$object")
 
-  LICENSE=$(jq -r '.['$i'].license' sources.json)
+  LICENSE=$(jq --raw-output '.license' <<< "$object")
 
-  STUFF='
-{
-  "'$PNAME'": {
+  ADD=$(curl --silent \
+    --request GET \
+    --url "https://addons.mozilla.org/api/v5/addons/addon/$SLUG/?app=firefox&lang=en-US" \
+    | jq '{
+    "'"$PNAME"'": {
     slug: .slug,
     version: .current_version.version,
     extid: .guid,
@@ -31,19 +26,21 @@ for ((i=0; i<$count; i++)); do
       description: (.summary."en-US" // ""),
       homepage: (.homepage.url."en-US" // ""),
       mozPermissions: (.current_version.file.permissions // []),
-      license: ( '$LICENSE' // .current_version.license.id )
+      license: ( '"$LICENSE"' // .current_version.license.id )
     },
   } 
 }
-'
+')
 
-  ADD=$(curl -sX GET "https://addons.mozilla.org/api/v5/addons/addon/$SLUG/?app=firefox&lang=en-US" | jq "$STUFF")
-  if [ -z "$ADD" ]; then 
+if [ -z "$ADD" ]; then 
   echo "$SLUG failed?"
   exit 1
-  fi
-  echo "$ADD"
-  OBJECT="$OBJECT $ADD"
+fi
+
+echo "$ADD"
+
+OBJECT="$OBJECT $ADD"
+
 done
 
-echo "$OBJECT" | jq -s add > generated.json
+jq -s add <<< "$OBJECT" > generated.json
