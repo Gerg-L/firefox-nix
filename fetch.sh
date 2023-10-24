@@ -43,4 +43,5 @@ OBJECT="$OBJECT $ADD"
 
 done
 
-jq -s add <<< "$OBJECT" > generated.json
+jq -s add <<< "$OBJECT"  ./generated/generated.json
+nix eval --impure --expr 'builtins.fromJSON (builtins.readFile ./generated/generated.json'  > generated.nix

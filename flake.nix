@@ -84,7 +84,7 @@
                     inherit buildCommand nativeBuildInputs;
                   }
                 )
-                (lib.importJSON ./generated.json);
+                (import ./generated/generated.nix);
           in
           {
             fetch = pkgs.writeShellApplication {
